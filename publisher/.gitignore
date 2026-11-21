@@ -1,0 +1,8 @@
+.secrets/
+.venv/
+.env
+state.json
+state.json.tmp
+__pycache__/
+.pytest_cache/
+state.lock

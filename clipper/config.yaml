@@ -1,0 +1,88 @@
+# Clipper config.
+#
+# SOURCES: this list is meant for channels the owner runs or has permission
+# to clip. The clipper only reads URLs listed here, plus the channels found
+# by discovery below when discover_category is set.
+#   - a channel URL is watched for live streams by `python -m clipper watch`
+#   - a video URL can be clipped with `python -m clipper video <url>`
+sources:
+  - https://www.youtube.com/watch?v=EJXTZ5jpSmk
+#  - https://www.youtube.com/@your_channel
+#  - https://www.twitch.tv/your_channel
+#  - https://kick.com/your_channel
+#  - https://www.youtube.com/watch?v=VIDEO_ID
+
+# Live watching
+poll_seconds: 60          # how often to check whether a channel is live
+segment_seconds: 60       # length of each rolling raw segment
+
+# Discovery: `watch` also finds the biggest live streams in a category and
+# clips them. Channels found this way are NOT checked for permission. Clipping
+# and re-uploading someone else's stream is the owner's call and risk.
+# Needs TWITCH_CLIENT_ID/SECRET and/or KICK_CLIENT_ID/SECRET in clipper/.env.
+discover_category: {twitch: Grand Theft Auto VI, kick: Grand Theft Auto VI (GTA)}   # null = discovery off.
+                          # Or one name per platform:
+                          #   discover_category: {twitch: Just Chatting, kick: Just Chatting}
+discover_language: en     # only streams tagged with this language; null = any
+discover_platforms: [twitch, kick]
+discover_top: 3           # how many streams to watch, biggest first, both platforms together
+discover_rescan_minutes: 30   # how often the list is rebuilt; streams that
+                          # dropped out are stopped, new ones are started
+live_skip_when_behind: true   # when a stream has several segments waiting,
+                          # process only the busiest one (chat, then loudness)
+live_quality: 720p        # quality recorded from live streams: 480p, 720p, 1080p, best
+                          # Ten streams at once: 1080p60 and 720p fell behind live on
+                          # this machine and connection; 480p kept up on Kick.
+                          # Lower quality means softer clips. Use 720p or best
+                          # when watching fewer streams.
+
+# Disk cap: raw files in clipper/work/ that have been processed are deleted
+# once they are older than this many hours.
+raw_retention_hours: 2
+# Size cap: when clipper/work/ is bigger than this many GB, the oldest
+# processed raw files are deleted first. Unprocessed and open segments are kept.
+raw_max_gb: 20
+
+# Clip selection
+min_clip_seconds: 15
+max_clip_seconds: 60
+max_clips_per_video: 3    # for `video`; live makes at most 1 clip per segment
+min_score: 0.45           # 0..1, clips below this are not made
+
+# Editing
+dead_air_seconds: 0.6     # pauses longer than this are cut (0 turns it off)
+loudness_lufs: -14
+caption_style: group      # group = 3 words with the spoken word highlighted
+                          # word  = one big word at a time
+layout: auto              # auto | face | stack | center
+                          # auto: stack when a small fixed facecam is found,
+                          # follow the face when a speaker is found, else centre
+facecam_region: null      # optional [x, y, w, h] as fractions of the frame,
+                          # e.g. [0.75, 0.70, 0.25, 0.30]; forces stack layout
+
+# Transcription (faster-whisper)
+whisper_model: small
+whisper_device: auto      # auto | cuda | cpu
+language: null            # null = detect
+
+# Scoring. `scorer` is a "module:function" path. The function takes
+# (window, signals) and returns a score 0..1. Point it at your own function
+# to swap the model. See README.md.
+scorer: clipper.scoring:score_window
+llm_backend: venice       # local  = Ollama on this machine, no API key
+                          # claude = Claude API (needs ANTHROPIC_API_KEY)
+                          # venice = Venice API (needs VENICE_API_KEY)
+                          # none   = built-in text heuristic only
+local_model: llama3.2     # any model shown by `ollama list`
+ollama_url: http://localhost:11434
+llm_model: claude-sonnet-5-5   # used only when llm_backend is claude
+venice_model: zai-org-glm-5    # used only when llm_backend is venice
+llm_pick_moments: true    # venice only: the model reads the whole transcript in
+                          # one call and chooses the moments itself. false, or
+                          # any failure, falls back to rating windows one by one
+llm_max_candidates: 8     # one-by-one mode: only the best N windows by cheap
+                          # signals go to the LLM
+weights:
+  text: 0.55              # LLM hook/standalone rating (or heuristic fallback)
+  loudness: 0.25
+  chat: 0.20              # ignored when chat is not readable

@@ -1,0 +1,28 @@
+# Publisher config.
+
+clips_dir: ../clipper/out     # read-only input: <clip_id>.mp4 + <clip_id>.json
+destinations: [youtube]
+
+dry_run: false            # true = only print what would be uploaded
+privacy_status: public        # private | unlisted | public. Set to public by the owner on 2026-11-21.
+
+min_score: 0.5                # clips scoring below this are skipped
+skip_overlapping: true        # skip a clip that repeats the same moment as an
+                              # uploaded clip or a better-scoring waiting one
+overlap_fraction: 0.5         # "same moment" = this share of the shorter clip's
+                              # words is one shared run (same source only)
+max_uploads_per_day: 5        # your own cap; never more than api_daily_upload_limit
+min_gap_minutes: 60           # minimum time between two uploads
+retry_failed: false           # failed uploads are left for you to check
+
+poll_seconds: 30              # how often `run` looks for new clips
+
+youtube:
+  # Google's default for videos.insert is 100 calls per day, 1 unit per call,
+  # in its own quota bucket, reset at midnight Pacific Time (Google's
+  # "Quota Calculator" docs page, last updated 2026-11-12). Lower this if
+  # your project's upload quota is lower.
+  api_daily_upload_limit: 100
+  category_id: "22"           # People & Blogs
+  made_for_kids: false
+  notify_subscribers: false
